@@ -5,10 +5,12 @@
 import numpy as N  # http://www.numpy.org
 import matplotlib.pyplot as P   # http://matplotlib.org
 import math as M  # https://docs.python.org/2/library/math.html
+from docx import Document  # https://python-docx.readthedocs.io/en/latest/user/install.html#install
+
 
 # Length of the simulation and time-step
 time_max = 48.0   # length in hours of the simulation
-dt = 30.0 # time step in s
+dt = 60.0 # time step in s
 
 # PARAMETER VALUES
 A = 0.001 # Pa m^-1
@@ -35,7 +37,7 @@ time_axis = N.zeros((nt_len))
 u = N.zeros((nt_len))      # x-component velocity, numerical solution
 v = N.zeros((nt_len))      # y-component velocity, numerical solution
 u_ana = N.zeros((nt_len))  # analytical solution x-component velocity
-
+v_ana = N.zeros((nt_len))
 # INITIAL CONDITION (t=0) : atmosphere in rest
 nt = 0
 time[nt] = 0
@@ -43,6 +45,7 @@ time_axis[nt] = 0
 u[nt] = 0
 v[nt] = 0
 u_ana[nt] = 0
+v_ana[nt] = 0
 
 # TIME LOOP EULER FORWARD SCHEME 
 for nt in range(len(time)-1): 
@@ -52,12 +55,14 @@ for nt in range(len(time)-1):
  u[nt+1] = u[nt] + du
  v[nt+1] = v[nt] + dv	
  u_ana[nt+1] = (C1 * M.sin(fcor * time[nt+1])) + ( C3* M.sin((omega * time[nt+1]) + phase) ) 
+ v_ana[nt+1] = (C1 * M.cos(fcor * time[nt+1]) + (M.cos(omega * time[nt+1]) * fcor * A) / (ro*(M.pow(fcor,2)-M.pow(omega, 2))))
 
 for nt in range(len(time)):
  time_axis[nt] = time[nt] / 3600. # time axis in hours
  
 # MAKE PLOT of evolution in time of u, v and u_ana
-P.plot(time_axis, u_ana, color='black')
+P.plot(time_axis, v_ana, color='black', linestyle = 'dashed')
+P.plot(time_axis, u_ana, color='black', linestyle = 'dashed')
 P.plot(time_axis, u, color='red')
 P.plot(time_axis, v, color='blue')
 P.axis([0,time_axis[nt_len-1],-25.0,25.0])  # define axes 
@@ -70,7 +75,24 @@ P.text(1, 23, 'u (analytical solution) (no damping): black line', fontsize=10, c
 P.text(1, 21, 'u (numerical solution): red line (forward time difference scheme)', fontsize=10, color='red')
 P.text(1, 19, 'v (numerical solution): blue line (forward time difference scheme)', fontsize=10, color='blue')
 P.grid(True)
-P.savefig("SeabreezeSimulation.png") # save plot as png-file
+# P.savefig("SeabreezeSimulation.png") # save plot as png-file
 P.show() # show plot on screen
+
+
+#%%==============================================================
+# Importing the table
+import tabula
+
+tables = tabula.read_pdf('ObservationsAnalysisIJmuiden(AnswerProblem1_13AD).pdf')
+# time = tables[0][["time[hr],after7/5/1976,00UTC"]]
+day = tables[0][["day"]]
+hour = tables[0][["hour"]]
+dpdx = tables[0][["dpdx[Pa/km]"]]
+dpdy = tables[0][["dpdy[Pa/km]"]]
+u0 = tables[0][["u0[m/s]"]]
+v0 = tables[0][["v0[m/s]"]]
+dpdx_m = tables[0][["dpdx_m[Pa/km]"]]
+u0_m = tables[0][["u0_m[m/s]"]]
+v0_m = tables[0][["v0_m[m/s]"]]
 
 # END OF THE PYTHON SCRIPT
