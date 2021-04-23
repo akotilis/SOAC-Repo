@@ -10,14 +10,14 @@ from docx import Document  # https://python-docx.readthedocs.io/en/latest/user/i
 
 # Length of the simulation and time-step
 time_max = 48.0   # length in hours of the simulation
-dt = 60.0 # time step in s
+dt = 1.0 # time step in s
 
 # PARAMETER VALUES
 A = 0.001 # Pa m^-1
 phase = 0.0 # phase of surface pressure gradient in time
 lat = 52 # latitude in degress
 phi = 0.0 # phase of the pressure gradient 
-labda = 0.0  # Rayleigh damping coefficient
+labda = 0.0  # Rayleigh damping coefficient  #max=0.033
 
 # CONSTANTS
 omega = 0.000072792  # angular velocity Earth [s^-1]
@@ -81,18 +81,58 @@ P.show() # show plot on screen
 
 #%%==============================================================
 # Importing the table
-import tabula
+# !pip install tabula
+from tabula.io import read_pdf
 
-tables = tabula.read_pdf('ObservationsAnalysisIJmuiden(AnswerProblem1_13AD).pdf')
+tables = read_pdf('ObservationsAnalysisIJmuiden(AnswerProblem1_13AD).pdf')
 # time = tables[0][["time[hr],after7/5/1976,00UTC"]]
+time = N.array(range(48))
 day = tables[0][["day"]]
 hour = tables[0][["hour"]]
-dpdx = tables[0][["dpdx[Pa/km]"]]
-dpdy = tables[0][["dpdy[Pa/km]"]]
+dpdx = tables[0][["dpdx[Pa/km]"]]*1e-3 #Pa/m
+dpdy = tables[0][["dpdy[Pa/km]"]]*1e-3 #Pa/m
 u0 = tables[0][["u0[m/s]"]]
 v0 = tables[0][["v0[m/s]"]]
-dpdx_m = tables[0][["dpdx_m[Pa/km]"]]
+dpdx_m = tables[0][["dpdx_m[Pa/km]"]]*1e-3 #Pa/m
 u0_m = tables[0][["u0_m[m/s]"]]
 v0_m = tables[0][["v0_m[m/s]"]]
+#%%==================================================================
+# Plotting the observation
+P.figure()
+P.plot(time, u0, color="red", label="Measurements of $u_0$")
+P.plot(time, v0, color="blue", label="Measurements of $v_0$")
+P.axis([0, time[-1], -10, 10])
+P.xticks(N.arange(0,time[-1], 6))
+P.xlabel('time [hours]', fontsize=14) # label along x-axes
+P.ylabel('velocity [m/s]', fontsize=14) # label along x-axes
+P.title("Measurements at IJmuiden")
+P.legend()
+P.grid()
+P.tight_layout()
+
+P.figure()
+P.scatter(time[:24], dpdx[:24], label="Data")
+P.xlabel('time [hours]', fontsize=14) # label along x-axes
+P.ylabel('dpdx [Pa/m]', fontsize=14)
+P.legend()
+
+
+#%%
+# Least square fit
+from scipy.optimize import curve_fit
+
+def f(x, a, b):
+    return a * N.cos(omega * x *3600 + b)
+
+xdata = N.arange(0,24,1)
+ydata = dpdx_m[24:].to_numpy()
+
+params, cov = curve_fit(f, xdata, ydata.ravel())  #ydata.ravel() converts array from 2D to 1D
+print(params)
+
+P.scatter(xdata, ydata)
+P.plot(xdata, f(xdata, params[0], params[1]), '--', color='red')
+#%%
+
 
 # END OF THE PYTHON SCRIPT
