@@ -10,7 +10,7 @@ from docx import Document  # https://python-docx.readthedocs.io/en/latest/user/i
 
 # Length of the simulation and time-step
 time_max = 48.0   # length in hours of the simulation
-dt = 1.0 # time step in s
+dt = 30.0 # time step in s
 
 # PARAMETER VALUES
 A = 0.001 # Pa m^-1
@@ -61,6 +61,7 @@ for nt in range(len(time)):
  time_axis[nt] = time[nt] / 3600. # time axis in hours
  
 # MAKE PLOT of evolution in time of u, v and u_ana
+P.figure(figsize = (8,4))
 P.plot(time_axis, v_ana, color='black', linestyle = 'dashed')
 P.plot(time_axis, u_ana, color='black', linestyle = 'dashed')
 P.plot(time_axis, u, color='red')
@@ -79,14 +80,14 @@ P.grid(True)
 P.show() # show plot on screen
 
 
-#%%==============================================================
+#%%===========================================================================
 # Importing the table
 # !pip install tabula
 from tabula.io import read_pdf
 
 tables = read_pdf('ObservationsAnalysisIJmuiden(AnswerProblem1_13AD).pdf')
 # time = tables[0][["time[hr],after7/5/1976,00UTC"]]
-time = N.array(range(48))
+time_data = N.array(range(48))
 day = tables[0][["day"]]
 hour = tables[0][["hour"]]
 dpdx = tables[0][["dpdx[Pa/km]"]]*1e-3 #Pa/m
@@ -96,13 +97,13 @@ v0 = tables[0][["v0[m/s]"]]
 dpdx_m = tables[0][["dpdx_m[Pa/km]"]]*1e-3 #Pa/m
 u0_m = tables[0][["u0_m[m/s]"]]
 v0_m = tables[0][["v0_m[m/s]"]]
-#%%==================================================================
+#%%===========================================================================
 # Plotting the observation
-P.figure()
-P.plot(time, u0, color="red", label="Measurements of $u_0$")
-P.plot(time, v0, color="blue", label="Measurements of $v_0$")
-P.axis([0, time[-1], -10, 10])
-P.xticks(N.arange(0,time[-1], 6))
+P.figure(figsize = (8,4))
+P.plot(time_data, u0, color="red", label="Measurements of $u_0$")
+P.plot(time_data, v0, color="blue", label="Measurements of $v_0$")
+P.axis([0, time_data[-1], -10, 10])
+P.xticks(N.arange(0,time_data[-1], 6))
 P.xlabel('time [hours]', fontsize=14) # label along x-axes
 P.ylabel('velocity [m/s]', fontsize=14) # label along x-axes
 P.title("Measurements at IJmuiden")
@@ -110,29 +111,86 @@ P.legend()
 P.grid()
 P.tight_layout()
 
-P.figure()
-P.scatter(time[:24], dpdx[:24], label="Data")
-P.xlabel('time [hours]', fontsize=14) # label along x-axes
-P.ylabel('dpdx [Pa/m]', fontsize=14)
-P.legend()
+# P.figure(figsize = (8,4))
+# P.scatter(time[:24], dpdx[:24], label="Data")
+# P.xlabel('time [hours]', fontsize=14) # label along x-axes
+# P.ylabel('dpdx [Pa/m]', fontsize=14)
+# P.legend()
 
 
-#%%==================================================================
+#%%===========================================================================
 # Least square fit
 from scipy.optimize import curve_fit
 
 def f(x, a, b):
-    return a * N.cos(omega * x *3600 + b)
+   return  a * N.cos(omega * x *3600 + b)    #x*3600 will turn hours to seconds
 
-xdata = N.arange(0,24,1)
+xdata = N.arange(0,24,1)   #create array of hours of measurements
 ydata = dpdx_m[24:].to_numpy()
 
 params, cov = curve_fit(f, xdata, ydata.ravel())  #ydata.ravel() converts array from 2D to 1D
-print(params)
+print('A=%.5e, phi = %.3f' %(params[0], params[1]))
 
-P.scatter(xdata, ydata)
-P.plot(xdata, f(xdata, params[0], params[1]), '--', color='red')
-#%%
+P.figure(figsize = (8,4))
+P.scatter(xdata, ydata, label="Data")
+P.plot(xdata, f(xdata, params[0], params[1]), '--', color='red', label="Fitted curve")
+P.title("Data and fitted curve")
+P.ylabel("dp/dx [Pa/m]")
+P.xlabel("time[hours]")
+P.legend()
+#%%===========================================================================
+# Comparison of the model with the data with the values of A and phi
+
+angle_data = (N.arctan2(v0, u0)*180/N.pi).to_numpy()  #observed angle of wind direction in degrees
+angle_data = -angle_data   #change to clockwise rotation
+# angle_data = N.where(angle_data<0, angle_data, angle_data + 360)
+
+for i in range(len(angle_data)):
+   if angle_data[i] < 0:
+        angle_data[i] = angle_data[i] + 360
+
+
+A, phase = params[0], params[1]
+u[nt]=0
+v[nt]=0
+
+
+for nt in range(len(time)-1): 
+ du = dt * (-(labda * u[nt]) + (fcor*v[nt]) - ((A/ro)* M.cos((omega*time[nt])+phase)))
+ dv = dt * (-(labda * v[nt]) - (fcor * u[nt]))
+ time[nt+1] = time[nt]+dt 
+ u[nt+1] = u[nt] + du
+ v[nt+1] = v[nt] + dv	
+ u_ana[nt+1] = (C1 * M.sin(fcor * time[nt+1])) + ( C3* M.sin((omega * time[nt+1]) + phase) ) 
+ v_ana[nt+1] = (C1 * M.cos(fcor * time[nt+1]) + (M.cos(omega * time[nt+1]) * fcor * A) / (ro*(M.pow(fcor,2)-M.pow(omega, 2))))
+
+angle_num = (N.arctan2(v, u)*180/N.pi)
+angle_num = -angle_num
+
+for i in range(len(angle_num)):
+   if angle_num[i] < 0:
+        angle_num[i] = angle_num[i] + 360
+
+P.figure(figsize=(8,4))
+P.scatter(time_data, angle_data, color="black")
+P.xlabel('time [hours]', fontsize=14)
+P.ylabel('Wind direction($\degree$) [m/s]', fontsize=14)
+P.xticks(N.arange(0, time_data[-1]+2, 2))
+
+
+
+P.plot(time_axis[1:-1], angle_num[1:-1], color="red")
+
+P.tight_layout()
+
+"""
+get the constant ug,vg line - leaast square fit to get values for B,ug,vg??
+get the realistic ug,vg line - line221
+correct the plot - discard the vertical lines
+"""
+
+
+
 
 
 # END OF THE PYTHON SCRIPT
