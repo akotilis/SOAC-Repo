@@ -373,12 +373,6 @@ plot_taylor(ax1, u_data.ravel(), usim5, color = 'green', marker = '*', alpha = 1
                 markersize = 10,
                  label='4. Geostrophic wind: ' + str(N.round(N.sqrt(mean_squared_error(u_data, usim5)),2)))
 
-# u_mean = (usim2+usim3+usim4+usim5)/4
-
-# d1 = plot_taylor(ax1, u_data.ravel(), u_mean, color = 'black', marker = 'o', alpha = 1, linestyle = 'none',
-#                 markersize = 10,
-#                  label='Mean: ' + str(N.round(N.sqrt(mean_squared_error(u_data, u_mean)),2)))
-
 plot_taylor(ax1, u_data.ravel(), u_data.ravel(), color = 'red', marker = 'o', alpha = 1, linestyle = 'none',
                 markersize = 10,
                  label='Observed: ' + str(N.round(N.sqrt(mean_squared_error(u_data, u_data)),2)))
@@ -413,12 +407,6 @@ plot_taylor(ax1, v_data.ravel(), vsim4, color = 'blue', marker = '*', alpha = 1,
 plot_taylor(ax1, v_data.ravel(), vsim5, color = 'green', marker = '*', alpha = 1, linestyle = 'none',
                 markersize = 10,
                  label='4. Geostrophic wind: ' + str(N.round(N.sqrt(mean_squared_error(v_data, vsim5)),2)))
-
-# v_mean = (vsim2+vsim3+vsim4+vsim5)/4
-
-# d1 = plot_taylor(ax1, v_data.ravel(), v_mean, color = 'black', marker = 'o', alpha = 1, linestyle = 'none',
-#                 markersize = 10,
-#                  label='Mean: ' + str(N.round(N.sqrt(mean_squared_error(v_data, v_mean)),2)))
 
 plot_taylor(ax1, v_data.ravel(), v_data.ravel(), color = 'red', marker = 'o', alpha = 1, linestyle = 'none',
                 markersize = 10,
